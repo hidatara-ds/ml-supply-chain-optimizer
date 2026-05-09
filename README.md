@@ -194,8 +194,8 @@ curl http://localhost:8000/health
 ### Deployment
 
 #### Streamlit Cloud (Recommended for MVP)
-1. Push repo ke GitHub
-2. Login ke [streamlit.io](https://streamlit.io/cloud)
+1. Push repo to GitHub
+2. Login to [streamlit.io](https://streamlit.io/cloud)
 3. Connect GitHub repo
 4. Set main file: `streamlit_app.py`
 5. Deploy!
@@ -203,13 +203,13 @@ curl http://localhost:8000/health
 **Note:** Ensure `data/processed/predictions.csv` exists before deploying, or generate it via GitHub Actions.
 
 #### Vercel (Future: Next.js Frontend)
-Untuk deployment production dengan custom UI, bisa build Next.js frontend yang call FastAPI backend.
+For production deployment with a custom UI, you can build a Next.js frontend that calls the FastAPI backend.
 
 ### Roadmap
-- ✅ Streamlit dashboard untuk visualisasi
+- ✅ Streamlit dashboard for visualization
 - ETA/lead-time module
 - Anomaly detection
 - Cloud Run deployment (GCP)
-- Next.js frontend untuk production
+- Next.js frontend for production
 
 # supplychain-ml-forecasting-optimizer
