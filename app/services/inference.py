@@ -34,7 +34,7 @@ def _load_stats():
 
 def _naive_forecast(h, mean, std):
     """
-    Global baseline jika tidak ada data historis per SKU-location.
+    Global baseline if there is no historical data per SKU-location.
     """
     base = np.full(h, mean)
     # simple seasonal-ish bump last weeks of year
@@ -45,11 +45,11 @@ def _naive_forecast(h, mean, std):
 def _naive_and_seasonal_from_history(sub: pd.DataFrame, h: int, mean: float, std: float):
     """
     Baseline per SKU-location:
-    - Naive:       y_hat(t) = y(t-1)  -> ulangi nilai units_sold terakhir untuk semua horizon.
-    - Seasonal:    y_hat(t) = y(t-52) -> pakai lag_52 (jika tersedia) sebagai seasonal naive mingguan.
+    - Naive:       y_hat(t) = y(t-1)  -> repeat the last units_sold value for all horizons.
+    - Seasonal:    y_hat(t) = y(t-52) -> use lag_52 (if available) as weekly seasonal naive.
     """
     if sub is None or len(sub) == 0:
-        # fallback ke global naive jika tidak ada riwayat
+        # fallback to global naive if no history
         return _naive_forecast(h, mean, std), None
 
     sub = sub.sort_values(["year", "week"])
@@ -58,7 +58,7 @@ def _naive_and_seasonal_from_history(sub: pd.DataFrame, h: int, mean: float, std
     last_units = float(sub["units_sold"].iloc[-1])
     naive = [float(max(0.0, last_units))] * h
 
-    # Seasonal naive: gunakan lag_52 jika ada dan tidak NaN
+    # Seasonal naive: use lag_52 if available and not NaN
     seasonal = None
     if "lag_52" in sub.columns:
         val = sub["lag_52"].iloc[-1]
@@ -88,8 +88,8 @@ def forecast_batch(pairs, horizon):
             sub = df[(df.store_id == sid) & (df.product_id == pid)]
 
         if model is None:
-            # Jika belum ada model terlatih, pakai baseline:
-            # - seasonal naive jika tersedia, jika tidak fallback ke naive / global.
+            # If no trained model, use baseline:
+            # - seasonal naive if available, else fallback to naive / global.
             naive, seasonal = _naive_and_seasonal_from_history(sub, horizon, mean, std)
             fc = seasonal if seasonal is not None else naive
         else:

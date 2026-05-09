@@ -1,82 +1,81 @@
 ## Problem Contract
 
-Dokumen ini mendefinisikan “kontrak masalah” yang menjadi acuan untuk seluruh pipeline forecasting dan replenishment optimizer di proyek ini.
+This document defines the "problem contract" that serves as the reference for the entire forecasting and replenishment optimizer pipeline in this project.
 
-### A. Apa yang mau diprediksi?
+### A. What are we forecasting?
 
-- **Target prediksi**: `demand_qty` (jumlah permintaan / penjualan) per kombinasi:
+- **Forecast target**: `demand_qty` (demand / sales quantity) per combination of:
   - **SKU** (product_id)
   - **Location** (store_id)
-  - **Periode waktu**: minggu
-- **Horizon**: \(H = 4\) minggu ke depan untuk setiap SKU–location.
-- **Granularity waktu**: **mingguan** (weekly), konsisten dengan horizon dan struktur data dummy/training.
+  - **Time period**: week
+- **Horizon**: \(H = 4\) weeks ahead for each SKU–location.
+- **Time granularity**: **weekly**, consistent with the horizon and dummy/training data structure.
 
-Secara operasional, model akan menerima daftar pasangan `(store_id, product_id)` dan mengembalikan deret waktu forecast demand mingguan selama 4 minggu ke depan untuk setiap pasangan tersebut.
+Operationally, the model will receive a list of `(store_id, product_id)` pairs and return a time series of weekly demand forecasts for the next 4 weeks for each pair.
 
-### B. Output optimizer apa?
+### B. What is the optimizer output?
 
-- **Output utama**: `order_qty` per kombinasi:
+- **Main output**: `order_qty` per combination of:
   - SKU
   - Location
-  - Periode (misalnya, order mingguan)
+  - Period (e.g., weekly order)
 
-- **Objective function (utama)**:
-  - **Minimisasi total biaya persediaan**, yang meliputi:
-    - biaya simpan (**holding cost**),
-    - biaya kehabisan stok (**stockout / shortage cost**),
-    - biaya pemesanan (**ordering cost**),
-  - atau ekuivalennya mencapai **target service level** minimum dengan biaya total serendah mungkin.
+- **Objective function (main)**:
+  - **Minimize total inventory cost**, which includes:
+    - **holding cost**,
+    - **stockout / shortage cost**,
+    - **ordering cost**,
+  - or equivalently achieve a minimum **target service level** with the lowest possible total cost.
 
-Secara matematis, optimizer menyelesaikan masalah alokasi budget/capacity ke kombinasi SKU–location berbasis forecast demand untuk menghasilkan keputusan pemesanan (`order_qty`) yang ekonomis namun tetap memenuhi target service.
+Mathematically, the optimizer solves the problem of allocating budget/capacity to SKU–location combinations based on the demand forecast to produce economical ordering decisions (`order_qty`) while still meeting the target service level.
 
-### C. Constraint minimal
+### C. Minimum constraints
 
-Optimizer setidaknya mempertimbangkan (atau siap diperluas untuk mempertimbangkan) constraint di bawah ini:
+The optimizer at least considers (or is ready to be extended to consider) the following constraints:
 
 - **Lead time**:
-  - Jeda antara order ditempatkan sampai stok tersedia di lokasi.
-  - Mempengaruhi kapan `order_qty` perlu ditempatkan agar stok cukup ketika permintaan terjadi.
+  - The delay between when an order is placed and when the stock is available at the location.
+  - Affects when `order_qty` needs to be placed so that there is enough stock when demand occurs.
 
 - **MOQ (Minimum Order Quantity)**:
-  - Batas minimal pemesanan per SKU (misal per karton / pack).
-  - `order_qty` dibulatkan atau dibatasi agar memenuhi MOQ tersebut.
+  - The minimum order limit per SKU (e.g., per carton / pack).
+  - `order_qty` is rounded or constrained to meet this MOQ.
 
 - **Capacity constraint**:
-  - Batas maksimum total volume atau nilai order (mis. kapasitas gudang, slot pallet, atau kapasitas distribusi).
-  - Dapat dimodelkan sebagai:
-    - batas total kuantitas, atau
-    - batas total nilai biaya (budget/cap).
+  - The maximum limit of total volume or order value (e.g., warehouse capacity, pallet slots, or distribution capacity).
+  - Can be modeled as:
+    - total quantity limit, or
+    - total cost value limit (budget/cap).
 
-- **Shelf-life / expiry** (jika relevan untuk kategori produk tertentu):
-  - Membatasi seberapa jauh ke depan kita berani menumpuk stok.
-  - Mengurangi atau melarang overstock yang berpotensi kadaluarsa sebelum terjual.
+- **Shelf-life / expiry** (if relevant for certain product categories):
+  - Limits how far ahead we dare to pile up stock.
+  - Reduces or prohibits overstock that potentially expires before being sold.
 
 - **Budget cap**:
-  - Batas atas total belanja (mis. per minggu / per siklus replenishment).
-  - Optimizer mengalokasikan budget ini ke SKU–location dengan prioritas tertinggi secara ekonomi (mis. margin, criticality, atau impact service level).
+  - The upper limit of total spending (e.g., per week / per replenishment cycle).
+  - The optimizer allocates this budget to SKU–locations with the highest economic priority (e.g., margin, criticality, or service level impact).
 
-### D. KPI yang jadi “lulus / gagal”
+### D. Pass / fail KPIs
 
-Kontrak keberhasilan solusi diukur dari gabungan KPI forecasting dan KPI operasional / inventory berikut:
+The success contract of the solution is measured by a combination of the following forecasting KPIs and operational / inventory KPIs:
 
-- **KPI Forecasting**:
+- **Forecasting KPIs**:
   - **WAPE (Weighted Absolute Percentage Error)**:
-    - Lebih stabil untuk data dengan banyak zero/low demand dibanding MAPE.
-    - Dievaluasi per horizon (mis. 1–4 minggu ke depan) dan diaggregate per SKU–location dan total portfolio.
+    - More stable for data with many zero/low demand compared to MAPE.
+    - Evaluated per horizon (e.g., 1–4 weeks ahead) and aggregated per SKU–location and total portfolio.
   - **MASE (Mean Absolute Scaled Error)**:
-    - Membandingkan error model terhadap naive baseline (mis. naive last week).
-    - Nilai \< 1 menandakan model lebih baik dari baseline naïf.
+    - Compares model error against a naive baseline (e.g., naive last week).
+    - A value \< 1 indicates the model is better than the naive baseline.
 
-- **KPI Inventory / Operational**:
+- **Inventory / Operational KPIs**:
   - **Fill-rate**:
-    - Proporsi permintaan yang bisa dipenuhi dari stok on-hand.
-    - Target tipikal: mis. \(\ge 95\%\) (dapat diubah sesuai kebutuhan bisnis).
+    - The proportion of demand that can be met from on-hand stock.
+    - Typical target: e.g., \(\ge 95\%\) (can be adjusted according to business needs).
   - **Stockout days**:
-    - Jumlah hari/minggu dimana stok = 0 saat ada permintaan.
-    - Semakin sedikit semakin baik; dapat dijadikan constraint maksimum.
+    - The number of days/weeks where stock = 0 when there is demand.
+    - The fewer the better; can be used as a maximum constraint.
   - **Total cost**:
-    - Penjumlahan biaya holding + stockout + ordering dalam horizon tertentu.
-    - Digunakan untuk membandingkan skenario (baseline vs optimizer) dan sebagai objective yang diminimasi.
+    - The sum of holding + stockout + ordering costs within a certain horizon.
+    - Used to compare scenarios (baseline vs optimizer) and as an objective to be minimized.
 
-Kombinasi KPI di atas mendefinisikan apakah solusi “lulus/gagal”: model forecast dianggap baik jika WAPE/MASE memenuhi target; optimizer dianggap berhasil jika mampu mencapai atau melampaui target fill-rate/stockout dengan total cost yang masuk akal atau lebih rendah dari kebijakan baseline.
-
+The combination of the above KPIs defines whether the solution "passes/fails": the forecast model is considered good if WAPE/MASE meets the target; the optimizer is considered successful if it can achieve or exceed the fill-rate/stockout target with a reasonable total cost or lower than the baseline policy.

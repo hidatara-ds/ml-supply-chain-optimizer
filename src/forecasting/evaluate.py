@@ -1,16 +1,16 @@
 """
-Evaluation utilities for forecasting models (metrics, backtests, dsb.).
+Evaluation utilities for forecasting models (metrics, backtests, etc.).
 
 Time-based split (weekly):
 - Train : all weeks up to T-8
 - Val   : (T-8, T-4]
-- Test  : (T-4, T]  → fokus evaluasi.
+- Test  : (T-4, T]  -> evaluation focus.
 
-Evaluasi minimal:
-- Hitung baseline naive & seasonal-naive (berbasis lag_1, lag_52).
-- (Opsional) Hitung prediksi model jika artefak model tersedia.
-- Simpan `data/processed/predictions.csv`.
-- Cetak ringkasan metrik (WAPE + MASE) ke terminal.
+Minimal evaluation:
+- Calculate naive & seasonal-naive baseline (based on lag_1, lag_52).
+- (Optional) Calculate model predictions if model artifacts are available.
+- Save `data/processed/predictions.csv`.
+- Print metrics summary (WAPE + MASE) to terminal.
 """
 
 from pathlib import Path
@@ -32,7 +32,7 @@ PRED_PATH = PROCESSED_DIR / "predictions.csv"
 
 def _make_time_splits(df: pd.DataFrame):
     """
-    Replikasi skema split dari `train.py`, berbasis (year, week).
+    Replicate split schema from `train.py`, based on (year, week).
     """
     if "time_key" not in df.columns:
         df = df.copy()
@@ -70,7 +70,7 @@ def _load_model():
 def _load_stats(df: pd.DataFrame) -> Dict[str, float]:
     if STATS_PATH.exists():
         return json.loads(STATS_PATH.read_text())
-    # fallback: hitung dari data
+    # fallback: calculate from data
     mean = float(df["units_sold"].mean())
     std = float(df["units_sold"].std())
     return {"mean": mean, "std": std}
@@ -78,11 +78,11 @@ def _load_stats(df: pd.DataFrame) -> Dict[str, float]:
 
 def evaluate() -> None:
     """
-    Evaluasi model & baseline di test set (time-based).
+    Evaluate model & baseline on test set (time-based).
     """
     if not FEAT_PATH.exists():
         raise FileNotFoundError(
-            f"{FEAT_PATH} tidak ditemukan. Jalankan dulu ETL: `python etl/build_features.py`."
+            f"{FEAT_PATH} not found. Run ETL first: `python etl/build_features.py`."
         )
 
     df = pd.read_parquet(FEAT_PATH)
@@ -94,7 +94,7 @@ def evaluate() -> None:
     train_df, val_df, test_df = _make_time_splits(df)
 
     if len(test_df) == 0:
-        raise RuntimeError("Test split kosong; data historis belum cukup untuk skema T-8/T-4/T.")
+        raise RuntimeError("Test split is empty; historical data is not enough for T-8/T-4/T schema.")
 
     stats = _load_stats(df)
     global_mean = stats.get("mean", 5.0)
@@ -117,13 +117,13 @@ def evaluate() -> None:
     else:
         test_df["y_pred_seasonal"] = test_df["y_pred_naive"]
 
-    # Model predictions jika tersedia
+    # Model predictions if available
     if model is not None:
         Xte = test_df[feature_cols]
         y_model = model.predict(Xte)
         test_df["y_pred_model"] = [float(max(0.0, v)) for v in y_model]
 
-    # Simpan predictions.csv
+    # Save predictions.csv
     cols_for_output = id_cols + [
         "y_true",
         "y_pred_naive",
@@ -152,7 +152,7 @@ def evaluate() -> None:
         key = f"{sid}|{pid}"
         y_true = grp["y_true"].tolist()
 
-        # Insample untuk MASE: pakai seluruh histori kombinasi ini, sebelum test period
+        # Insample for MASE: use entire history of this combination, before test period
         hist = (
             df[(df["store_id"] == sid) & (df["product_id"] == pid)]
             .sort_values(["year", "week"])
@@ -174,7 +174,7 @@ def evaluate() -> None:
     for m, val in results_global.items():
         print(f"  {m:15s}: {val:.4f}")
 
-    # Tampilkan beberapa pasangan terburuk berdasarkan naive WAPE
+    # Show some of the worst pairs based on naive WAPE
     worst = sorted(
         results_per_pair.items(),
         key=lambda kv: kv[1]["y_pred_naive_wape"],

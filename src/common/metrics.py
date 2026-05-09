@@ -1,9 +1,9 @@
 """
 Common metrics for forecasting & inventory evaluation.
 
-Target utama:
-- WAPE, MASE untuk forecasting.
-- Fill-rate, stockout days, total cost untuk inventory/ops.
+Main targets:
+- WAPE, MASE for forecasting.
+- Fill-rate, stockout days, total cost for inventory/ops.
 """
 
 from typing import Iterable, Sequence
@@ -34,16 +34,16 @@ def mase(
     y_true, y_pred : Sequence[float]
         Out-of-sample actual & forecast.
     insample : Iterable[float]
-        In-sample series untuk menghitung naive seasonal error.
+        In-sample series to calculate naive seasonal error.
     m : int
-        Seasonal period (mis. 1 untuk naive, 7/52 untuk seasonal).
+        Seasonal period (e.g., 1 for naive, 7/52 for seasonal).
     """
     y_true_arr = np.asarray(y_true, dtype=float)
     y_pred_arr = np.asarray(y_pred, dtype=float)
 
     insample_arr = np.asarray(list(insample), dtype=float)
     if len(insample_arr) <= m:
-        # fallback: jika insample terlalu pendek, kembalikan WAPE-like
+        # fallback: if insample is too short, return WAPE-like
         return wape(y_true_arr, y_pred_arr)
 
     naive_err = np.abs(insample_arr[m:] - insample_arr[:-m]).mean()

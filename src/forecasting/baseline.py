@@ -1,12 +1,12 @@
 """
 Baseline forecasting methods.
 
-Tujuan modul ini:
-- Menyediakan baseline super sederhana sebagai patokan:
+Purpose of this module:
+- Provide super simple baselines as benchmarks:
   - Naive:          y_hat(t) = y(t-1)
-  - Seasonal naive: y_hat(t) = y(t-52)  (untuk data mingguan)
+  - Seasonal naive: y_hat(t) = y(t-52)  (for weekly data)
 
-Implementasi ini tidak bergantung pada framework ML tertentu, hanya NumPy/Pandas.
+This implementation does not depend on any specific ML framework, only NumPy/Pandas.
 """
 
 from typing import List, Optional, Tuple
@@ -17,8 +17,8 @@ import pandas as pd
 
 def global_naive_forecast(h: int, mean: float, std: float) -> List[float]:
     """
-    Global baseline jika tidak ada data historis per SKU-location.
-    Mirip dengan asumsi demand konstan di sekitar mean dengan sedikit bump di akhir horizon.
+    Global baseline if there is no historical data per SKU-location.
+    Similar to assuming constant demand around the mean with a slight bump at the end of the horizon.
     """
     base = np.full(h, mean)
     # simple seasonal-ish bump last steps of horizon
@@ -34,25 +34,25 @@ def naive_and_seasonal_from_history(
     std: float,
 ) -> Tuple[List[float], Optional[List[float]]]:
     """
-    Baseline per SKU-location berbasis histori:
+    Baseline per SKU-location based on history:
 
     Parameters
     ----------
     sub : pd.DataFrame
-        Riwayat untuk satu kombinasi store_id–product_id dengan kolom:
+        History for one store_id–product_id combination with columns:
         - 'units_sold'
-        - opsional: 'lag_52' untuk seasonal naive mingguan.
+        - optional: 'lag_52' for weekly seasonal naive.
     h : int
-        Horizon forecast (jumlah langkah ke depan).
+        Forecast horizon (number of steps ahead).
     mean, std : float
-        Statistik global fallback bila histori tidak cukup.
+        Global fallback statistics if history is insufficient.
 
     Returns
     -------
     naive : list[float]
-        Naive baseline: ulangi nilai units_sold terakhir untuk seluruh horizon.
+        Naive baseline: repeat the last units_sold value for the entire horizon.
     seasonal : Optional[list[float]]
-        Seasonal naive (berbasis lag_52) jika tersedia & tidak NaN, else None.
+        Seasonal naive (based on lag_52) if available & not NaN, else None.
     """
     if sub is None or len(sub) == 0:
         from .baseline import global_naive_forecast  # local import to avoid cycles

@@ -1,52 +1,52 @@
 ## Data Dictionary
 
-Dokumen ini menjelaskan **format dataset** yang dipakai untuk training forecasting dan sebagai input ke optimizer. Jika data aktual belum final, skema di bawah ini berfungsi sebagai **sample schema** yang nanti bisa di-map ke sumber data sebenarnya.
+This document describes the **dataset format** used for forecasting training and as input to the optimizer. If the actual data is not yet final, the schema below serves as a **sample schema** that can later be mapped to the actual data source.
 
-### 1. Format Dataset Inti (Core)
+### 1. Core Dataset Format
 
-Setiap baris mewakili observasi permintaan untuk satu kombinasi **tanggal × SKU × lokasi**.
+Each row represents a demand observation for one combination of **date × SKU × location**.
 
-#### Tabel Kolom Core
+#### Core Columns Table
 
-| Kolom         | Tipe (disarankan) | Contoh          | Deskripsi                                                                 |
-|---------------|-------------------|-----------------|---------------------------------------------------------------------------|
-| `date`        | `date` / `string` (YYYY-MM-DD) | `2025-01-06`   | Tanggal observasi demand (granularity harian atau awal minggu).          |
-| `sku_id`      | `string`          | `P001`          | ID unik produk / SKU.                                                    |
-| `location_id` | `string`          | `S001`          | ID unik lokasi (toko, DC, region).                                       |
-| `demand_qty`  | `float` / `int`   | `12.0`          | Jumlah permintaan / penjualan aktual pada tanggal tersebut (target forecast). |
+| Column        | Type (recommended) | Example         | Description                                                               |
+|---------------|--------------------|-----------------|---------------------------------------------------------------------------|
+| `date`        | `date` / `string` (YYYY-MM-DD) | `2025-01-06`   | Date of demand observation (daily or start of week granularity).          |
+| `sku_id`      | `string`           | `P001`          | Unique product / SKU ID.                                                  |
+| `location_id` | `string`           | `S001`          | Unique location ID (store, DC, region).                                   |
+| `demand_qty`  | `float` / `int`    | `12.0`          | Actual demand / sales quantity on that date (forecast target).            |
 
-> Catatan: Granularity yang disarankan konsisten dengan **Problem Contract** (weekly). Jika data historis harian, agregasi ke mingguan dapat dilakukan di tahap ETL.
+> Note: The recommended granularity is consistent with the **Problem Contract** (weekly). If historical data is daily, aggregation to weekly can be done in the ETL stage.
 
-### 2. Kolom Opsional (Feature Tambahan)
+### 2. Optional Columns (Additional Features)
 
-Kolom-kolom di bawah ini bersifat opsional. Jika tersedia, bisa digunakan sebagai fitur tambahan untuk model forecasting atau sebagai parameter untuk optimizer.
+The columns below are optional. If available, they can be used as additional features for the forecasting model or as parameters for the optimizer.
 
-#### 2.1. Harga & Promo
+#### 2.1. Price & Promo
 
-| Kolom          | Tipe (disarankan) | Contoh  | Deskripsi                                                              |
-|----------------|-------------------|---------|------------------------------------------------------------------------|
-| `price`        | `float`           | `49.90` | Harga jual per unit SKU pada tanggal/lokasi tersebut.                  |
-| `promo_flag`   | `int` / `bool`    | `1`     | Indikator periode promo (1 = promo, 0 = tidak promo).                 |
-| `holiday_flag` | `int` / `bool`    | `0`     | Indikator hari libur / high season (1 = libur/high season, 0 = bukan).|
+| Column         | Type (recommended) | Example | Description                                                            |
+|----------------|--------------------|---------|------------------------------------------------------------------------|
+| `price`        | `float`            | `49.90` | Selling price per SKU unit on that date/location.                      |
+| `promo_flag`   | `int` / `bool`     | `1`     | Promo period indicator (1 = promo, 0 = no promo).                      |
+| `holiday_flag` | `int` / `bool`     | `0`     | Holiday / high season indicator (1 = holiday/high season, 0 = not).    |
 
 #### 2.2. Inventory & Supply
 
-| Kolom            | Tipe (disarankan) | Contoh | Deskripsi                                                                 |
-|------------------|-------------------|--------|---------------------------------------------------------------------------|
-| `on_hand`        | `float` / `int`   | `35`   | Stok on-hand di awal/periode observasi.                                  |
-| `on_order`       | `float` / `int`   | `20`   | Kuantitas yang sudah di-order tetapi belum diterima (open PO).          |
-| `lead_time_days` | `int`             | `7`    | Lead time rata-rata (hari) dari order sampai stok tiba di lokasi.       |
+| Column           | Type (recommended) | Example | Description                                                               |
+|------------------|--------------------|---------|---------------------------------------------------------------------------|
+| `on_hand`        | `float` / `int`    | `35`    | On-hand stock at the beginning/observation period.                        |
+| `on_order`       | `float` / `int`    | `20`    | Quantity already ordered but not yet received (open PO).                  |
+| `lead_time_days` | `int`              | `7`     | Average lead time (days) from order until stock arrives at the location.  |
 
-#### 2.3. Master Data Produk & Supplier
+#### 2.3. Product & Supplier Master Data
 
-| Kolom        | Tipe (disarankan) | Contoh     | Deskripsi                                             |
-|--------------|-------------------|------------|-------------------------------------------------------|
-| `supplier_id`| `string`          | `SUP01`    | ID pemasok utama untuk SKU tersebut.                  |
-| `category`   | `string`          | `Beverage` | Kategori produk (mis. category, subcategory, segment).|
+| Column       | Type (recommended) | Example    | Description                                           |
+|--------------|--------------------|------------|-------------------------------------------------------|
+| `supplier_id`| `string`           | `SUP01`    | Main supplier ID for the SKU.                         |
+| `category`   | `string`           | `Beverage` | Product category (e.g., category, subcategory, segment).|
 
-### 3. Contoh Skema (Sample Schema)
+### 3. Sample Schema
 
-Contoh skema tabel dalam format pseudo-SQL:
+Example table schema in pseudo-SQL format:
 
 ```sql
 CREATE TABLE demand_history (
@@ -69,5 +69,4 @@ CREATE TABLE demand_history (
 );
 ```
 
-Skema di atas bisa diadaptasi ke format lain (CSV, Parquet, Pandas DataFrame). Yang penting, setiap kolom mengikuti **nama** dan **arti** seperti yang didefinisikan di tabel data dictionary ini, sehingga pipeline ETL, model, dan optimizer dapat saling terhubung secara konsisten.
-
+The schema above can be adapted to other formats (CSV, Parquet, Pandas DataFrame). The important thing is that each column follows the **name** and **meaning** as defined in this data dictionary table, so that the ETL pipeline, model, and optimizer can connect consistently.

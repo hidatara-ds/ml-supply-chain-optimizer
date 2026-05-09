@@ -4,9 +4,9 @@ Training entrypoints for forecasting models with proper time-based splits.
 Time split (weekly):
 - Train : all weeks up to T-8
 - Val   : (T-8, T-4]
-- Test  : (T-4, T]   → dipakai terutama oleh modul evaluate.
+- Test  : (T-4, T]   -> used mainly by the evaluate module.
 
-Tidak ada random split; semua berdasarkan urutan waktu.
+No random split; everything is based on chronological order.
 """
 
 from pathlib import Path
@@ -27,7 +27,7 @@ STATS_PATH = ART_DIR / "demand_stats.json"
 
 def _make_time_splits(df: pd.DataFrame):
     """
-    Buat train/val/test split berbasis waktu (year, week), tanpa random.
+    Create train/val/test split based on time (year, week), without random.
     """
     if "time_key" not in df.columns:
         df = df.copy()
@@ -37,14 +37,14 @@ def _make_time_splits(df: pd.DataFrame):
     n = len(weeks)
 
     if n >= 12:
-        # Train: semua kecuali 8 minggu terakhir
+        # Train: all except the last 8 weeks
         train_weeks = weeks[: n - 8]
-        # Val: 4 minggu sebelum 4 minggu terakhir
+        # Val: 4 weeks before the last 4 weeks
         val_weeks = weeks[n - 8 : n - 4]
-        # Test: 4 minggu terakhir
+        # Test: last 4 weeks
         test_weeks = weeks[n - 4 :]
     else:
-        # Fallback untuk dataset sangat pendek: 60/20/20 tetap berurutan waktu
+        # Fallback for very short datasets: 60/20/20 still chronological
         n_train = max(1, int(n * 0.6))
         n_val = max(1, int(n * 0.2))
         train_weeks = weeks[:n_train]
@@ -60,21 +60,21 @@ def _make_time_splits(df: pd.DataFrame):
 
 def train():
     """
-    Train forecasting model dengan time-based split dan simpan artefak.
+    Train forecasting model with time-based split and save artifacts.
 
     Output:
     - `models/artifacts/model_lgbm.pkl`
     - `models/artifacts/demand_stats.json`
-    - Ringkasan MAE di terminal (val dan test).
+    - MAE summary in terminal (val and test).
     """
     if not FEAT_PATH.exists():
         raise FileNotFoundError(
-            f"{FEAT_PATH} tidak ditemukan. Jalankan dulu ETL: `python etl/build_features.py`."
+            f"{FEAT_PATH} not found. Run ETL first: `python etl/build_features.py`."
         )
 
     df = pd.read_parquet(FEAT_PATH)
 
-    # Label & fitur
+    # Label & features
     label_col = "units_sold"
     id_cols = ["store_id", "product_id", "year", "week"]
     feature_cols = [c for c in df.columns if c not in id_cols + [label_col]]
@@ -90,7 +90,7 @@ def train():
     Xte = test_df[feature_cols]
     yte = test_df[label_col]
 
-    # Model: LightGBM jika ada, fallback ke RandomForest
+    # Model: LightGBM if available, fallback to RandomForest
     try:
         import lightgbm as lgb
 
@@ -102,7 +102,7 @@ def train():
         model = RFR(n_estimators=300, random_state=42)
         model.fit(Xtr, ytr)
 
-    # Evaluasi kasar di val & test (MAE)
+    # Rough evaluation on val & test (MAE)
     if len(Xval) > 0:
         pred_val = model.predict(Xval)
         mae_val = mean_absolute_error(yval, pred_val)
@@ -113,10 +113,10 @@ def train():
         mae_test = mean_absolute_error(yte, pred_test)
         print(f"Test MAE (time-based): {mae_test:.3f} (n={len(Xte)})")
 
-    # Simpan model
+    # Save model
     joblib.dump(model, MODEL_PATH)
 
-    # Simpan statistik global untuk baseline
+    # Save global statistics for baseline
     stats = {
         "mean": float(df[label_col].mean()),
         "std": float(df[label_col].std()),

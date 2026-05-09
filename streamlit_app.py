@@ -1,11 +1,11 @@
 """
-Streamlit Dashboard untuk Supply Chain ML Forecasting & Optimizer
+Streamlit Dashboard for Supply Chain ML Forecasting & Optimizer
 
-Dashboard ini menampilkan:
-- Ringkasan metrik evaluasi (WAPE, MASE)
-- Visualisasi forecast vs actual
-- Tabel evaluasi per SKU-location
-- Detail forecast untuk SKU-location tertentu
+This dashboard displays:
+- Evaluation metrics summary (WAPE, MASE)
+- Forecast vs actual visualization
+- Evaluation table per SKU-location
+- Forecast details for specific SKU-location
 """
 
 import json
@@ -33,7 +33,7 @@ STATS_PATH = Path("models/artifacts/demand_stats.json")
 
 @st.cache_data
 def load_predictions():
-    """Load predictions.csv jika ada."""
+    """Load predictions.csv if exists."""
     if PRED_PATH.exists():
         return pd.read_csv(PRED_PATH)
     return None
@@ -41,7 +41,7 @@ def load_predictions():
 
 @st.cache_data
 def load_features():
-    """Load weekly features jika ada."""
+    """Load weekly features if exists."""
     if FEAT_PATH.exists():
         return pd.read_parquet(FEAT_PATH)
     return None
@@ -49,7 +49,7 @@ def load_features():
 
 @st.cache_data
 def load_stats():
-    """Load demand stats jika ada."""
+    """Load demand stats if exists."""
     if STATS_PATH.exists():
         return json.loads(STATS_PATH.read_text())
     return None
@@ -75,10 +75,10 @@ def main():
 
     if pred_df is None:
         st.warning(
-            "⚠️ File `data/processed/predictions.csv` belum ada. "
-            "Jalankan dulu: `python -m src.forecasting.evaluate`"
+            "⚠️ File `data/processed/predictions.csv` not found. "
+            "Run this first: `python -m src.forecasting.evaluate`"
         )
-        st.info("💡 Atau jalankan pipeline lengkap:\n```bash\npython etl/generate_dummy.py\npython etl/build_features.py\npython -m src.forecasting.train\npython -m src.forecasting.evaluate\n```")
+        st.info("💡 Or run the full pipeline:\n```bash\npython etl/generate_dummy.py\npython etl/build_features.py\npython -m src.forecasting.train\npython -m src.forecasting.evaluate\n```")
         return
 
     # --- Summary Metrics ---
@@ -109,7 +109,7 @@ def main():
                      delta=f"{improvement:.4f} (better)" if improvement > 0 else None,
                      delta_color="inverse")
         else:
-            st.metric("Model WAPE", "N/A", help="Model belum di-train")
+            st.metric("Model WAPE", "N/A", help="Model not trained yet")
     with col4:
         st.metric("Test Rows", len(pred_df))
         st.metric("Unique SKU-Locations", pred_df[["store_id", "product_id"]].drop_duplicates().shape[0])
@@ -119,13 +119,13 @@ def main():
     # --- Forecast Comparison Chart ---
     st.header("📉 Forecast vs Actual (Sample)")
 
-    # Pilih beberapa SKU-location untuk ditampilkan
+    # Select some SKU-locations to display
     unique_pairs = pred_df[["store_id", "product_id"]].drop_duplicates()
     
     col_left, col_right = st.columns([3, 1])
     with col_left:
         selected_pair = st.selectbox(
-            "Pilih SKU-Location:",
+            "Select SKU-Location:",
             options=[f"{row['store_id']} | {row['product_id']}" 
                     for _, row in unique_pairs.head(20).iterrows()],
             index=0
@@ -136,7 +136,7 @@ def main():
         pair_data = pred_df[(pred_df["store_id"] == sid) & (pred_df["product_id"] == pid)].copy()
         pair_data = pair_data.sort_values(["year", "week"])
 
-        # Buat chart
+        # Create chart
         fig = go.Figure()
 
         fig.add_trace(go.Scatter(
@@ -218,7 +218,7 @@ def main():
             )
             st.plotly_chart(fig_err_model, use_container_width=True)
         else:
-            st.info("Model forecast belum tersedia untuk error analysis.")
+            st.info("Model forecast not available for error analysis.")
 
     st.markdown("---")
 
@@ -226,7 +226,7 @@ def main():
     if show_details:
         st.header("🔍 SKU-Location details")
 
-        # Hitung WAPE per pair
+        # Calculate WAPE per pair
         metrics_list = []
         for (sid, pid), grp in pred_df.groupby(["store_id", "product_id"]):
             y_true = grp["y_true"]
@@ -266,7 +266,7 @@ def main():
 
     # --- Footer ---
     st.markdown("---")
-    st.caption("💡 Dashboard ini membaca dari `data/processed/predictions.csv`. Refresh data setelah menjalankan evaluasi baru.")
+    st.caption("💡 This dashboard reads from `data/processed/predictions.csv`. Refresh data after running a new evaluation.")
 
 
 if __name__ == "__main__":

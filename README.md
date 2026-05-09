@@ -1,5 +1,11 @@
 ## Supply Chain ML: Forecasting + Replenishment Optimizer
 
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.11x-green)
+![Docker](https://img.shields.io/badge/Docker-ready-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+[![CI](https://github.com/hidatara-ds/supplychain-ml-forecasting-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/hidatara-ds/supplychain-ml-forecasting-optimizer/actions)
+
 An end-to-end demo for retail supply chain analytics: generate realistic dummy data, engineer features, train a weekly demand-forecast model, and optimize replenishment under budget using linear programming. Exposed via a FastAPI service.
 
 ### Problem Contract
@@ -95,28 +101,34 @@ python -m src.forecasting.evaluate
 ```
 
 #### Option B: Streamlit Dashboard (Visual)
-Setelah menjalankan pipeline di atas, jalankan dashboard:
+After running the pipeline above, launch the dashboard:
 ```powershell
 streamlit run streamlit_app.py
 ```
-Dashboard akan terbuka di browser (default: `http://localhost:8501`).
+The dashboard will open in your browser (default: `http://localhost:8501`).
 
-**Fitur Dashboard:**
-- 📈 Summary metrics (WAPE untuk naive, seasonal, model)
-- 📉 Forecast vs Actual comparison chart (interaktif)
+**Dashboard Features:**
+- 📈 Summary metrics (WAPE for naive, seasonal, model)
+- 📉 Forecast vs Actual comparison chart (interactive)
 - 📊 Error distribution histograms
-- 🔍 Detail metrics per SKU-location (opsional)
+- 🔍 Detail metrics per SKU-location (optional)
 
 #### Option C: FastAPI Service
 ```powershell
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-4) Smoke tests (untuk API)
+4) Smoke tests (for API)
 ```powershell
+# PowerShell
 Invoke-RestMethod -Uri "http://localhost:8000/health" -Method Get
 Invoke-RestMethod -Uri "http://localhost:8000/forecast" -Method Post -ContentType "application/json" -Body '{"horizon_weeks":4,"pairs":[{"store_id":"S001","product_id":"P001"}]}'
 Invoke-RestMethod -Uri "http://localhost:8000/replenish" -Method Post -ContentType "application/json" -Body '{"target_service":0.95,"capacity":50000}'
+
+# curl (macOS/Linux/Windows)
+curl http://localhost:8000/health
+curl -X POST http://localhost:8000/forecast -H "Content-Type: application/json" -d '{"horizon_weeks":4,"pairs":[{"store_id":"S001","product_id":"P001"}]}'
+curl -X POST http://localhost:8000/replenish -H "Content-Type: application/json" -d '{"target_service":0.95,"capacity":50000}'
 ```
 
 Alternatively, using Make (macOS/Linux or Windows with `make` installed):
@@ -188,7 +200,7 @@ curl http://localhost:8000/health
 4. Set main file: `streamlit_app.py`
 5. Deploy!
 
-**Note:** Pastikan `data/processed/predictions.csv` sudah ada di repo atau generate via GitHub Actions.
+**Note:** Ensure `data/processed/predictions.csv` exists before deploying, or generate it via GitHub Actions.
 
 #### Vercel (Future: Next.js Frontend)
 Untuk deployment production dengan custom UI, bisa build Next.js frontend yang call FastAPI backend.
@@ -197,7 +209,7 @@ Untuk deployment production dengan custom UI, bisa build Next.js frontend yang c
 - ✅ Streamlit dashboard untuk visualisasi
 - ETA/lead-time module
 - Anomaly detection
-- Deployment notes for AWS (ECS/Lambda)
+- Cloud Run deployment (GCP)
 - Next.js frontend untuk production
 
 # supplychain-ml-forecasting-optimizer
